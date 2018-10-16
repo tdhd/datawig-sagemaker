@@ -1,0 +1,4 @@
+{
+    "feature_columns": "text,title",
+    "label_column": "finish"
+}

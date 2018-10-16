@@ -1,0 +1,100 @@
+#!/usr/bin/python34
+
+from __future__ import print_function
+
+import glob
+import json
+import os
+import sys
+import traceback
+
+import pandas as pd
+from datawig.simple_imputer import SimpleImputer
+
+prefix = '/opt/ml'
+
+input_path = os.path.join(prefix, 'input/data')
+output_path = os.path.join(prefix, 'output')
+model_path = os.path.join(prefix, 'model')
+param_path = os.path.join(prefix, 'input/config/hyperparameters.json')
+
+# This algorithm has a single channel of input data called 'training'. Since we run in
+# File mode, the input files are copied to the directory specified here.
+channel_name='training'
+training_path = os.path.join(input_path, channel_name)
+
+def create_configuration():
+    for l in os.listdir(prefix):
+        print('path: ' + l)
+    with open(param_path, 'r') as params:
+        hp =  json.load(params)
+
+    config = {
+        "feature_columns" : [x.strip() for x in hp['feature_columns'].split(',')],
+        "label_column": hp['label_column'],
+        "num_epochs": int(hp.get('num_epochs', 100)),
+        "batch_size": int(hp.get('batch_size', 128))
+    }
+
+    return config
+
+def train_model(config):
+    feature_names = config['feature_columns']
+    label_column = config['label_column']
+    num_epochs =  config['num_epochs']
+    batch_size = config['batch_size']
+
+    patience = 3
+    learning_rate = 0.01
+    test_split = 0.1
+
+    required_cols = feature_names + [label_column]
+
+    # Take the set of files and read them all into a single pandas dataframe
+    input_files = [ os.path.join(training_path, file) for file in os.listdir(training_path) ]
+    if len(input_files) == 0:
+        raise ValueError(('There are no files in {}.\n' +
+                            'This usually indicates that the channel ({}) was incorrectly specified,\n' +
+                            'the data specification in S3 was incorrectly specified or the role specified\n' +
+                            'does not have permission to access the data.').format(training_path, channel_name))
+
+    raw_data = [ pd.read_csv(file, usecols=required_cols, error_bad_lines=False, quoting=3) for file in input_files ]
+    train_data = pd.concat(raw_data)
+    print("Actual columns: " + str(train_data.columns)) 
+    imputer = SimpleImputer(
+        input_columns = feature_names,
+        output_column = label_column,
+        output_path = model_path
+    )
+
+    imputer.fit(
+        train_df = train_data,
+        batch_size = batch_size,
+        num_epochs = num_epochs,
+        patience =  patience,
+        learning_rate = learning_rate,
+        test_split = test_split
+    )
+
+def train():
+    print('Starting training')
+
+    config = create_configuration()
+    train_model(config)
+    
+    print('Training complete')
+
+if __name__ == "__main__":
+    try:
+        train()
+    except Exception as e:
+        trc = traceback.format_exc()
+        with open(os.path.join(output_path, 'failure'), 'w') as f:
+            f.write('Exception during training: ' + str(e) + '\n' + trc)
+        # Add the exception to the training job logs
+        print('Exception during training: ' + str(e)+ '\n' + trc, file=sys.stderr)
+        # A non-zero exit code causes the training job to be marked as Failed. 
+        sys.exit(255)
+
+    # A zero exit code causes the job to be marked a Succeeded.
+    sys.exit(0)
