@@ -1,4 +1,4 @@
-# Datawig on SageMaker
+# DataWig on SageMaker
 
 This packages shows how to package __[Datawig][datawig]__ imputation algorithm for use with SageMaker. The code and structure of the package are heavily influenced by examples from  __[Amazon-SageMaker-Examples][asm]__ repository.
 
