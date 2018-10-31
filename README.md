@@ -10,7 +10,7 @@ The following stack is used:
 
 ## The Structure of the Code
 
-* __Dockerfile__ .
+* __Dockerfile__.
 
 * __build\_and\_push.sh__: The script to build the Docker image (using the Dockerfile above) and push it to the [Amazon EC2 Container Registry (ECR)][ecr] so that it can be deployed to SageMaker. Name of the image is used as the only argument to this script. The script will generate a full name for the repository in AWS account account and configured AWS region. If this ECR repository doesn't exist, the script will create it.
 
@@ -41,6 +41,12 @@ The subdirectory 'test' contains scripts and sample data for testing the built c
 * __sagemaker_fs__: The directory that gets mounted into the container with test data mounted in all the places that match the container schema.
 * __test.csv__: Sample data for used by impute.sh for testing the server.
 
+```bash
+ ./test/train_local.sh $IMAGE_NAME 
+ ./test/serve_local.sh $IMAGE_NAME 
+ ./test/impute.sh ./test/test.csv
+```
+
 #### The directory tree mounted into the container
 
 The tree under test-dir is mounted into the container and mimics the directory structure that SageMaker would create for the running container during training or hosting.
@@ -52,8 +58,13 @@ The tree under test-dir is mounted into the container and mimics the directory s
 
 ### Client code example 
 
-* __client.py__:  Code example to train imputation model and host it in SageMaker
+* __client.py__:  Code example to train imputation model and host it in SageMaker. `ALGORITHM_NAME`, `S3_BUCKET` and `ROLE` parameters must be updated before running the script 
 * __reqirements.txt__: Required dependencies for client code to run
+
+```bash
+ pip3 install -r sagemaker/requirements.txt
+ python3 sagemaker/client.py
+```
 
 ## Environment variables
 
