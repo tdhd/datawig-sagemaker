@@ -17,10 +17,8 @@ RUN yum install -y nginx
 RUN /usr/bin/pip-3.4 install flask gevent gunicorn
 
 # Install Datawig
-# TODO: 'typing' is temporary, until 0.1.6 of Datawig is released 
 # TODO: speed up installaation of Datawig (pandas)
-RUN /usr/bin/pip-3.4 install typing 
-RUN /usr/bin/pip-3.4 install datawig==0.1.5
+RUN /usr/bin/pip-3.4 install datawig==0.1.7
 
 # PYTHONUNBUFFERED keeps Python from buffering our standard
 # output stream, which means that logs can be delivered to the user quickly

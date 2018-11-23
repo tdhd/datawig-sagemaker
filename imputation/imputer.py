@@ -26,7 +26,7 @@ class ImputationService(object):
             input (a pandas dataframe): The data on which to do the predictions. There will be
                 one prediction per row in the dataframe"""
         imputer = cls.get_imputer()
-        imputer.predict(input)
+        return imputer.predict(input)
 
 # The flask app for serving predictions
 app = flask.Flask(__name__)
@@ -61,11 +61,11 @@ def transformation():
     print('Invoked with {} records'.format(data.shape[0]))
 
     # Do the prediction
-    ImputationService.impute(data)
+    new_data = ImputationService.impute(data)
 
     # Convert from numpy back to CSV
     out = StringIO()
-    data.to_csv(out, header=False, index=False)
+    new_data.to_csv(out, header=False, index=False)
     result = out.getvalue()
 
     return flask.Response(response=result, status=200, mimetype='text/csv')
