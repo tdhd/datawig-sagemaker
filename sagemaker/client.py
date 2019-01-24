@@ -22,8 +22,8 @@ def load_hps():
 
 def upload_data(session):
     session = sagemaker.Session()
-    print("Uploading a dataset for training to S3 ... ")
-    data_location = session.upload_data("./test/sagemaker_fs/input/data/training/train.csv", bucket=S3_BUCKET, key_prefix="input")
+    print("Uploading a dataset for train to S3 ... ")
+    data_location = session.upload_data("./test/sagemaker_fs/input/data/train/train.csv", bucket=S3_BUCKET, key_prefix="input")
     print("Done uploading.")
 
     return data_location
@@ -41,7 +41,7 @@ def train_model(session, data_location, hyperparameters):
                                             sagemaker_session = session,
                                             hyperparameters = hyperparameters)
 
-    print("Starting training procedure ...")
+    print("Starting train procedure ...")
     estimator.fit(data_location)
     print("Training done.")
 
