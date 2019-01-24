@@ -1,4 +1,4 @@
-#!/usr/bin/python34
+#!/usr/bin/python36
 
 from __future__ import print_function
 
@@ -7,6 +7,9 @@ import json
 import os
 import sys
 import traceback
+
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import precision_score
 
 import pandas as pd
 from datawig.simple_imputer import SimpleImputer
@@ -65,32 +68,50 @@ def train_model(config):
 
     raw_data = [pd.read_csv(file, usecols=required_cols, error_bad_lines=False, quoting=3) for file in input_files]
     train_data = pd.concat(raw_data).astype(str)
-    print("Actual columns: " + str(train_data.columns)) 
+    print("Actual columns: " + str(train_data.columns))
+
+    # simple HPO
+    hpo_train_data, hpo_val_data = train_test_split(train_data, test_size=0.2)
+    hpo_results = []
+    for num_hash_buckets in [2 ** x for x in range(10, 18)]:
+        imputer = SimpleImputer(
+            input_columns=feature_names,
+            output_column=label_column,
+            is_explainable=True,
+            num_hash_buckets=num_hash_buckets,
+            tokens='words',
+            output_path=model_path
+        )
+        imputer.fit(
+            train_df=hpo_train_data,
+            batch_size=batch_size,
+            patience=patience,
+            test_split=test_split,
+        )
+
+        test_precision = precision_score(hpo_val_data[label_column], imputer.predict(hpo_val_data)[label_column+'_imputed'], average='weighted')
+        hpo_results.append({'num_hash_buckets': num_hash_buckets, 'weighted_precision': test_precision})
+
+    # save hpo results
+    pd.DataFrame(hpo_results).to_csv(os.path.join(output_path, "hpo_results.csv"))
+
+    # best hpo config
+    opt_num_hash_buckets = sorted(hpo_results, key=lambda cfg: -cfg['weighted_precision'])[0]['num_hash_buckets']
+
     imputer = SimpleImputer(
         input_columns=feature_names,
         output_column=label_column,
         is_explainable=True,
+        num_hash_buckets=opt_num_hash_buckets,
         tokens='words',
         output_path=model_path
     )
-
-    hps = {}
-    hps['string'] = {}
-    hps['string']['max_tokens'] = [2**x for x in range(10, 15)]
-    hps['global'] = {}
-    hps['global']['concat_columns'] = [False]
-    hps['global']['num_epochs'] = [num_epochs]
-
-    imputer.fit_hpo(
+    imputer.fit(
         train_df=train_data,
         batch_size=batch_size,
         patience=patience,
         test_split=test_split,
-        hps=hps
     )
-
-    # save hpo results
-    imputer.hpo.results.to_csv(os.path.join(output_path, "hpo_results.csv"))
 
 
 def train():
