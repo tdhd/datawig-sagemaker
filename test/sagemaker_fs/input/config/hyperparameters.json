@@ -1,4 +1,5 @@
 {
-    "feature_columns": "text,title",
-    "label_column": "finish"
+    "feature_columns": "review",
+    "label_column": "rating_binary",
+    "num_epochs": 10
 }

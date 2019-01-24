@@ -98,7 +98,9 @@ def transformation():
                     'predictions': [{
                         'predicted': label,
                         'predicted_probability': float(proba)
-                    } for label, proba in instance_preds]
+                    } for label, proba in instance_preds],
+                    # TODO
+                    'top_prediction_explanations': []
                 } for instance_preds in predictions[label_col]
             ]
         }
