@@ -23,11 +23,12 @@ param_path = os.path.join(prefix, 'input/config/hyperparameters.json')
 channel_name='training'
 training_path = os.path.join(input_path, channel_name)
 
+
 def create_configuration():
     for l in os.listdir(prefix):
         print('path: ' + l)
     with open(param_path, 'r') as params:
-        hp =  json.load(params)
+        hp = json.load(params)
 
     config = {
         "feature_columns" : [x.strip() for x in hp['feature_columns'].split(',')],
@@ -37,6 +38,7 @@ def create_configuration():
     }
 
     return config
+
 
 def train_model(config):
     feature_names = config['feature_columns']
@@ -62,9 +64,11 @@ def train_model(config):
     train_data = pd.concat(raw_data)
     print("Actual columns: " + str(train_data.columns)) 
     imputer = SimpleImputer(
-        input_columns = feature_names,
-        output_column = label_column,
-        output_path = model_path
+        input_columns=feature_names,
+        output_column=label_column,
+        is_explainable=True,
+        tokens='words',
+        output_path=model_path
     )
 
     imputer.fit(
@@ -76,6 +80,7 @@ def train_model(config):
         test_split = test_split
     )
 
+
 def train():
     print('Starting training')
 
@@ -83,6 +88,7 @@ def train():
     train_model(config)
     
     print('Training complete')
+
 
 if __name__ == "__main__":
     try:
