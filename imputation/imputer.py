@@ -37,6 +37,11 @@ class ImputationService(object):
         return imputer.imputer.predict_proba_top_k(input, top_k=k)
 
     @classmethod
+    def explain_instance(cls, instance):
+        imputer = cls.get_imputer()
+        return imputer.explain_instance(instance)
+
+    @classmethod
     def request_data_frame(cls, post_body):
         post_body = json.loads(post_body)
         print('label col', cls.get_imputer().output_column)
@@ -91,6 +96,16 @@ def transformation():
         data = ImputationService.request_data_frame(flask.request.data.decode('utf-8'))
         predictions = ImputationService.impute_top_k(data)
         label_col = ImputationService.imputer.output_column
+        explanations = []
+        for idx in range(data.shape[0]):
+            expl = ImputationService.explain_instance(data.iloc[idx])
+            k = [k for k in expl.keys() if k != 'explained_label'][0]
+            expl['tokens'] = expl[k]
+            del expl[k]
+            # top 3 positive covar tokens and only the token
+            expl['tokens'] = [e[0] for e in expl['tokens'] if e[1] > 0][:3]
+            explanations.append(expl)
+
         response = {
             'instances': [
                 {
@@ -99,8 +114,7 @@ def transformation():
                         'predicted': label,
                         'predicted_probability': float(proba)
                     } for label, proba in instance_preds],
-                    # TODO
-                    'top_prediction_explanations': []
+                    'prediction_explanations': explanations
                 } for instance_preds in predictions[label_col]
             ]
         }

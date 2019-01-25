@@ -2,13 +2,11 @@ FROM amazonlinux:2017.09
 
 # Update packages and install Python prerequisites
 RUN yum update -y
-RUN yum -y install python36 \
-    python36-pip
+RUN yum -y install python36 python36-pip
 
 # Install prerequisites for Datawig dependencies
-RUN yum install -y gcc \
-    gcc-c++ \
-    python36-devel
+RUN yum install -y gcc gcc-c++ python36-devel
+
 
 # Install prerequisites for serving
 RUN yum install -y nginx
@@ -16,9 +14,9 @@ RUN yum install -y nginx
 # Install container specific packages for serving
 RUN /usr/bin/pip-3.6 install flask gevent gunicorn
 
-# Install Datawig
-# TODO: speed up installaation of Datawig (pandas)
-RUN /usr/bin/pip-3.6 install datawig==0.1.7
+RUN yum install -y git
+#RUN /usr/bin/pip-3.6 install datawig==0.1.7
+RUN /usr/bin/pip-3.6 install git+https://github.com/awslabs/datawig.git@feature/requirements
 
 # PYTHONUNBUFFERED keeps Python from buffering our standard
 # output stream, which means that logs can be delivered to the user quickly
