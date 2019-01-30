@@ -70,70 +70,25 @@ def train_model(config):
     train_data = pd.concat(raw_data).astype(str)
     print("Actual columns: " + str(train_data.columns))
 
-    # imputer = SimpleImputer(
-    #     input_columns=feature_names,
-    #     output_column=label_column,
-    #     is_explainable=True,
-    #     num_hash_buckets=2048,
-    #     tokens='words',
-    #     output_path=model_path
-    # )
-    # hps = dict()
-    # hps['string'] = {'max_tokens': [2 ** x for x in range(10, 18)]}
-    # hps['global'] = {}
-    # hps['global']['concat_columns'] = [False]
-    # hps['global']['num_epochs'] = [10]
-    #
-    # imputer.fit_hpo(train_data, hps=hps)
-    # print(imputer.hpo.results)
-    # imputer.hpo.results.to_csv(os.path.join(output_path, "hpo_results.csv"), index=False)
-
-    # simple HPO
-    hpo_train_data, hpo_val_data = train_test_split(train_data, test_size=0.2)
-    hpo_results = []
-    for num_hash_buckets in [2 ** x for x in range(10, 18)]:
-        print('hpo:', num_hash_buckets)
-        imputer = SimpleImputer(
-            input_columns=feature_names,
-            output_column=label_column,
-            is_explainable=True,
-            num_hash_buckets=num_hash_buckets,
-            tokens='words',
-            output_path=model_path
-        )
-        imputer.fit(
-            train_df=hpo_train_data,
-            batch_size=batch_size,
-            patience=patience,
-            test_split=test_split,
-        )
-
-        test_precision = precision_score(hpo_val_data[label_column], imputer.predict(hpo_val_data)[label_column+'_imputed'], average='weighted')
-        hpo_results.append({'num_hash_buckets': num_hash_buckets, 'weighted_precision': test_precision})
-
-    # save hpo results
-    pd.DataFrame(hpo_results).to_csv(os.path.join(output_path, "hpo_results.csv"), index=False)
-
-    # best hpo config
-    opt_param = sorted(hpo_results, key=lambda cfg: -cfg['weighted_precision'])[0]
-    opt_num_hash_buckets = opt_param['num_hash_buckets']
-    print('optimal parameter', opt_param)
-    print('optimal number of hash buckets', opt_num_hash_buckets)
-
     imputer = SimpleImputer(
         input_columns=feature_names,
         output_column=label_column,
         is_explainable=True,
-        num_hash_buckets=opt_num_hash_buckets,
-        tokens='words',
         output_path=model_path
     )
-    imputer.fit(
-        train_df=train_data,
-        batch_size=batch_size,
-        patience=patience,
-        test_split=test_split,
-    )
+    # todo: concat input columns
+    hps = dict()
+    hps[feature_names[0]] = {'max_tokens': [2 ** x for x in range(10, 18)], 'tokens': [['words'], ['chars']]}
+    hps['global'] = {}
+    hps['global']['num_epochs'] = [25]
+
+    imputer.fit_hpo(train_data, hps=hps, num_evals=25)
+    imputer.save()
+
+    print(imputer.hpo.results)
+    print(imputer.hpo.results.shape)
+
+    imputer.hpo.results.to_csv(os.path.join(output_path, "hpo_results.csv"), index=False)
 
 
 def train():
