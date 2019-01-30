@@ -15,8 +15,9 @@ RUN yum install -y nginx
 RUN /usr/bin/pip-3.6 install flask gevent gunicorn
 
 RUN yum install -y git
-#RUN /usr/bin/pip-3.6 install datawig==0.1.7
-RUN /usr/bin/pip-3.6 install git+https://github.com/awslabs/datawig.git@feature/requirements
+#ARG datawig_version
+#RUN /usr/bin/pip-3.6 install datawig==$datawig_version
+RUN /usr/bin/pip-3.6 install git+https://github.com/awslabs/datawig.git@master
 
 # PYTHONUNBUFFERED keeps Python from buffering our standard
 # output stream, which means that logs can be delivered to the user quickly

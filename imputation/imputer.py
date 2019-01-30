@@ -7,6 +7,10 @@ import pandas as pd
 from datawig import SimpleImputer
 import json
 
+import cProfile as profile
+import pstats
+
+
 prefix = '/opt/ml'
 model_path = os.path.join(prefix, 'model')
 
@@ -18,7 +22,11 @@ class ImputationService(object):
     def get_imputer(cls):
         """Get the model object for this instance, loading it if it's not already loaded."""
         if cls.imputer is None:
-            cls.imputer = SimpleImputer.load(model_path)
+            imputer = SimpleImputer.load(model_path)
+            print(imputer.input_columns)
+            imputer.load_hpo_model()
+            print(imputer.input_columns)
+            cls.imputer = imputer
         return cls.imputer
 
     @classmethod
@@ -47,6 +55,12 @@ class ImputationService(object):
         print('label col', cls.get_imputer().output_column)
         instances = []
         for instance in post_body['instances']:
+            # feature concat
+            tmp_col = ''
+            for key in list(instance.keys()):
+                tmp_col = tmp_col + ' ' + instance[key]
+                del instance[key]
+            instance['_concat'] = tmp_col
             instance[cls.get_imputer().output_column] = ''
             instances.append(instance)
         df = pd.DataFrame(instances)
@@ -93,6 +107,9 @@ def transformation():
         return flask.Response(response=result, status=200, mimetype='text/csv')
 
     elif flask.request.content_type == 'application/json':
+        p = profile.Profile()
+        p.enable()
+
         data = ImputationService.request_data_frame(flask.request.data.decode('utf-8'))
         predictions = ImputationService.impute_top_k(data)
         label_col = ImputationService.imputer.output_column
@@ -118,6 +135,10 @@ def transformation():
                 } for instance_preds in predictions[label_col]
             ]
         }
+
+        p.disable()
+        pstats.Stats(p).sort_stats('cumulative').print_stats(50)
+
         return flask.Response(response=json.dumps(response), status=200, mimetype='application/json')
     else:
         return flask.Response(response='This predictor only supports CSV data', status=415, mimetype='text/plain')

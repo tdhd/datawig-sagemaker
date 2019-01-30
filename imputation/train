@@ -66,26 +66,47 @@ def train_model(config):
     train_data = pd.concat(raw_data).astype(str)
     print("Actual columns: " + str(train_data.columns))
 
-    # concat input columns (todo)
+    # concat input columns
+    concat_feature_col_name = '_concat'
+    string_concat_col = pd.Series(index=train_data.index, data='')
+    for col in feature_names:
+        string_concat_col += train_data[col].fillna("") + " "
+    train_data.loc[:, concat_feature_col_name] = string_concat_col
+    print(train_data.head())
 
     imputer = SimpleImputer(
-        input_columns=feature_names,
+        input_columns=[concat_feature_col_name],
         output_column=label_column,
         is_explainable=True,
         output_path=model_path
     )
 
     hps = dict()
-    hps[feature_names[0]] = {'max_tokens': [2 ** x for x in range(10, 18)], 'tokens': [['words'], ['chars']]}
+    hps[concat_feature_col_name] = {
+        'max_tokens': [2 ** x for x in range(10, 18)],
+        'tokens': [['words'], ['chars']]
+    }
     hps['global'] = {}
     hps['global']['num_epochs'] = [num_epochs]
     hps['global']['batch_size'] = [batch_size]
 
-    imputer.fit_hpo(train_data, hps=hps, num_evals=25)
-    imputer.save()
+    imputer.fit_hpo(
+        train_data,
+        hps=hps,
+        num_evals=25,
+        max_running_hours=1.0
+    )
+    # imputer.save()
 
-    print(imputer.hpo.results)
+    print(imputer.output_path)
+    print(imputer.hpo.results.columns)
+    print(
+        imputer.hpo.results[
+            [concat_feature_col_name + ':max_tokens', concat_feature_col_name + ':tokens', 'precision_weighted']
+        ]
+    )
     print(imputer.hpo.results.shape)
+    print([encoder.vectorizer for encoder in imputer.imputer.data_encoders])
 
     imputer.hpo.results.to_csv(os.path.join(output_path, "hpo_results.csv"), index=False)
 
