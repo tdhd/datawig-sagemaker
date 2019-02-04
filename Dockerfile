@@ -17,7 +17,7 @@ RUN /usr/bin/pip-3.6 install flask gevent gunicorn
 RUN /usr/bin/pip-3.6 install ipython
 
 RUN yum install -y git
-#ARG datawig_version
+ARG datawig_version
 RUN /usr/bin/pip-3.6 install datawig==$datawig_version
 #RUN /usr/bin/pip-3.6 install git+https://github.com/awslabs/datawig.git@master
 
