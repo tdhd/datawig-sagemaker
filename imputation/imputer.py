@@ -1,5 +1,4 @@
 import os
-import pickle
 from io import StringIO
 
 import flask
@@ -26,6 +25,7 @@ class ImputationService(object):
             print(imputer.input_columns)
             imputer.load_hpo_model()
             print(imputer.input_columns)
+            imputer.imputer.batch_size = 1
             cls.imputer = imputer
         return cls.imputer
 
@@ -107,8 +107,8 @@ def transformation():
         return flask.Response(response=result, status=200, mimetype='text/csv')
 
     elif flask.request.content_type == 'application/json':
-        p = profile.Profile()
-        p.enable()
+        # p = profile.Profile()
+        # p.enable()
 
         data = ImputationService.request_data_frame(flask.request.data.decode('utf-8'))
         predictions = ImputationService.impute_top_k(data)
@@ -136,8 +136,8 @@ def transformation():
             ]
         }
 
-        p.disable()
-        pstats.Stats(p).sort_stats('cumulative').print_stats(50)
+        # p.disable()
+        # pstats.Stats(p).sort_stats('tottime').print_stats(50)
 
         return flask.Response(response=json.dumps(response), status=200, mimetype='application/json')
     else:

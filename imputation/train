@@ -96,7 +96,6 @@ def train_model(config):
         num_evals=25,
         max_running_hours=1.0
     )
-    # imputer.save()
 
     print(imputer.output_path)
     print(imputer.hpo.results.columns)
